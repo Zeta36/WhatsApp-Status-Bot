@@ -1,0 +1,6 @@
+openai-agents[voice]>=0.4
+openai>=1.23
+moviepy<2
+python-dotenv>=1.0
+selenium>=4.20
+aiohttp>=3.8.5
