@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # ⇩ 1) Ajusta solo esta variable si cambias de ruta
-TARGET_DIR="/home/user/path/to/whatsapp_status_bot"
+TARGET_DIR="/home/samu/FOOTDISTRICT/Desarrollo/whatsapp_status_bot"
 TARGET_BIN="$TARGET_DIR/chromedriver"
 mkdir -p "$TARGET_DIR"
 

@@ -8,9 +8,10 @@ from typing import Any, List
 
 import openai
 import requests  # para descargar URLs si no recibimos base64
+from agents import Agent, Runner, ModelSettings
 from openai import OpenAIError
 
-log     = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 # Carpeta staging (se moverán luego a runs/)
 MEDIA_DIR = Path(__file__).parent.parent / "media"
@@ -37,18 +38,25 @@ def _generate(prompt: str, size: str, quality: str) -> Any:
     )
     return rsp.data[0]
 
-def _edit(prompt: str, size: str, quality: str, prev_path: str) -> Any:
-    with open(prev_path, "rb") as img_f:
-        rsp = openai.images.edit(
-            model="gpt-image-1",
-            image=img_f,      # UN solo archivo para coherencia
-            prompt=prompt,
-            n=1,
-            size=size,
-            quality=quality,
-            moderation="low"
-        )
-    return rsp.data[0]
+def _prepare_prompt(caption: str, style: str, script_context: str, idx: int, total: int) -> str:
+    model = os.getenv("SCRIPT_MODEL", "gpt-4o")
+    instructions = (
+        "Eres un agente que genera prompts detallados para imágenes con gpt-image-1. "
+        "Recibirá en la entrada el siguiente texto y deberá responder solo con el prompt para gpt-image-1."
+    )
+    agent = Agent(
+        name="ImagePromptGenerator",
+        model=model,
+        instructions=instructions,
+        tools=[],        
+    )
+    input_text = (
+        f"Escena {idx+1}/{total}: {caption}\n"
+        f"Estilo: {style}\n"
+        f"Contexto del guión:\n{script_context}"
+    )
+    result = Runner.run_sync(agent, input_text)
+    return result.final_output.strip()
 
 def _split_summary(summary: str, parts: int = 3) -> List[str]:
     words = summary.split()
@@ -60,11 +68,12 @@ def _split_summary(summary: str, parts: int = 3) -> List[str]:
         captions.append(" ".join(words[start:end]))
     return captions
 
-def run(summary: str, how_many: int, out_dir: str) -> List[str]:
+def run(summary: str, how_many: int, out_dir: str, full_script: str = None) -> List[str]:
     """
-    Split summary into `how_many` parts and generate images accordingly:
+    Split summary into `how_many` parts and generate images accordingly, but now also provide the full script for context:
      - idx=0 → generate with first caption
      - subsequent images preserve initial style
+     - full_script: if provided, is included in the prompt for more context
     """
     captions = _split_summary(summary, parts=how_many)
     # Load general image style
@@ -75,15 +84,15 @@ def run(summary: str, how_many: int, out_dir: str) -> List[str]:
     out_path_dir = Path(out_dir)
     out_path_dir.mkdir(exist_ok=True)
 
+    # Usa el guion completo si está disponible, si no, usa el summary como fallback
+    script_context = full_script if full_script else summary
+
     for idx, caption in enumerate(captions):
-         
         for attempt in range(1, MAX_RETRY+1):
             try:
-                # Llama a la API usando siempre generación, preservando estilo en partes posteriores
-                if idx == 0:
-                    prompt = f"Estilo general: {style}. Ilustración inicial sobre: {caption}"
-                else:
-                    prompt = f"Estilo general: {style}. Ilustración sobre: {caption}, conservando el estilo de la primera imagen"
+                # Generar prompt con el Agent y crear imagen
+                prompt = _prepare_prompt(caption, style, script_context, idx, how_many)
+                log.info("[ImageAgent] Prompt escena %d/%d: %s", idx+1, how_many, prompt)
                 item = _generate(prompt, size="1024x1024", quality=quality)
 
                 # saca bytes de la respuesta

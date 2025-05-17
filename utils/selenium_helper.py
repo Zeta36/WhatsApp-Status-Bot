@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 # selenium_helper.py
-# Adaptado de test_publish.py manteniendo exactamente la funcionalidad que funciona
-
 import os
 import time
 import logging
@@ -13,12 +11,14 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ---------------------------------------------------
 # CONFIGURACIÓN DE PERFILES
 # ---------------------------------------------------
-DEFAULT_PROFILE = Path(__file__).parent.parent / "selenium_profile"
-PROFILE_DIR = Path(os.getenv("WHATSAPP_PROFILE_DIR", str(DEFAULT_PROFILE)))
+PROFILE_DIR = Path(os.getenv("WHATSAPP_PROFILE_DIR"))
 PROFILE_DIR.mkdir(exist_ok=True)  # se crea si no existe
 
 CHROMEDRIVER_PATH = os.getenv("CHROMEDRIVER_PATH")  # opcionalmente pon tu ruta

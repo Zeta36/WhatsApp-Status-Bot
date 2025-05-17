@@ -4,6 +4,8 @@ import logging
 import shutil
 from dotenv import load_dotenv
 
+load_dotenv()
+
 def bootstrap(env_file: str = ".env", log_dir: str = "runs") -> None:
     """Carga .env y configura el logger global."""
     load_dotenv(env_file)

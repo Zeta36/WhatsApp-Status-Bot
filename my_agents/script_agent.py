@@ -40,5 +40,4 @@ def run(summary: str, model: str) -> str:
     # Ejecuta de forma sincrónica
     result = Runner.run_sync(agent, summary)
     quote = result.final_output.strip()
-    log.info("[ScriptAgent] Cita generada: %s", quote)
     return quote
